@@ -34,10 +34,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('delete-category/{id}', [CategoryController::class, 'destroy']);
 
     // Product Routes
-    Route::get('products', [ProductController::class, 'index']);
+    Route::get('/products', [ProductController::class, 'index']);
     Route::get('add-product', [ProductController::class, 'create']);
     Route::post('add-product', [ProductController::class, 'store']);
     Route::get('edit-product/{id}', [ProductController::class, 'edit']);
     Route::put('update-product/{id}', [ProductController::class, 'update']);
     Route::delete('delete-product/{id}', [ProductController::class, 'destroy']);
+    Route::get('/products/export', [ProductController::class, 'export']);
 });

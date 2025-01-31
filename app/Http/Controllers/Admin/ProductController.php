@@ -6,6 +6,8 @@ use App\Models\Category;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\Yaml\Yaml;
+
 
 class ProductController extends Controller
 {
@@ -15,6 +17,123 @@ class ProductController extends Controller
 
      return view('admin.product.index', compact('products'));
 }
+
+// public function index(Request $request)
+// {
+//     $products = Product::with('category')->get();
+
+//     // Check for requested format
+//     $format = $request->query('format', 'html'); // Default to HTML
+
+//     switch ($format) {
+//         case 'json':
+//             return response()->json($products);
+
+//         case 'xml':
+//             return response()->view('admin.product.xml', compact('products'))
+//                 ->header('Content-Type', 'application/xml');
+
+//         case 'yaml':
+//             return response()->make(\Symfony\Component\Yaml\Yaml::dump($products->toArray(), 2), 200, [
+//                 'Content-Type' => 'text/yaml'
+//             ]);
+
+//         case 'csv':
+//             return $this->exportCSV($products);
+
+//         default:
+//             return view('admin.product.index', compact('products'));
+//     }
+// }
+
+
+public function export(Request $request)
+{
+    $products = Product::with('category')->get();
+    $format = $request->query('format', 'json'); // Default format is JSON
+
+    switch ($format) {
+        case 'json':
+            return $this->downloadFile(json_encode($products, JSON_PRETTY_PRINT), 'products.json', 'application/json');
+
+        case 'xml':
+            $xmlContent = view('admin.product.xml', compact('products'))->render();
+            return $this->downloadFile($xmlContent, 'products.xml', 'application/xml');
+
+        case 'yaml':
+            $yamlContent = Yaml::dump($products->toArray(), 2);
+            return $this->downloadFile($yamlContent, 'products.yaml', 'text/yaml');
+
+        case 'csv':
+            return $this->exportCSV($products);
+
+        default:
+            return back()->with('error', 'Invalid format');
+    }
+}
+
+private function downloadFile($content, $filename, $mimeType)
+{
+    $filePath = storage_path("app/public/$filename");
+    file_put_contents($filePath, $content);
+
+    return response()->download($filePath)->deleteFileAfterSend(true);
+}
+
+public function exportCSV($products)
+{
+    $csvFileName = 'products.csv';
+    $filePath = storage_path("app/public/$csvFileName");
+
+    $handle = fopen($filePath, 'w');
+    fputcsv($handle, ['ID', 'Name', 'Category', 'Slug','Price', 'Description', 'Image']);
+
+    foreach ($products as $product) {
+        fputcsv($handle, [
+            $product->id,
+            $product->name,
+            $product->category->name ?? 'No Category',
+            $product->slug,
+            $product->price,
+            $product->description,
+            asset('storage/' . $product->image)
+        ]);
+    }
+
+    fclose($handle);
+
+    return response()->download($filePath)->deleteFileAfterSend(true);
+}
+
+// public function exportCSV($products)
+// {
+//     $csvFileName = 'products.csv';
+//     $headers = [
+//         "Content-Type" => "text/csv",
+//         "Content-Disposition" => "attachment; filename=$csvFileName",
+//     ];
+
+//     $callback = function () use ($products) {
+//         $handle = fopen('php://output', 'w');
+//         fputcsv($handle, ['ID', 'Name', 'Category', 'Slug', 'Description', 'Image']);
+
+//         foreach ($products as $product) {
+//             fputcsv($handle, [
+//                 $product->id,
+//                 $product->name,
+//                 $product->category->name ?? 'No Category',
+//                 $product->slug,
+//                 $product->description,
+//                 asset('storage/' . $product->image)
+//             ]);
+//         }
+
+//         fclose($handle);
+//     };
+
+//     return response()->stream($callback, 200, $headers);
+// }
+
 
     public function create()
     {
@@ -122,3 +241,11 @@ class ProductController extends Controller
     }
 }
 }
+
+
+
+// HTML (Default): /products
+// JSON: /products?format=json
+// XML: /products?format=xml
+// YAML: /products?format=yaml
+// CSV: /products?format=csv
