@@ -85,8 +85,7 @@
                                 <th>Price</th>
                                 <th>Description</th>
                                 <th>Image</th>
-                                <th>Edit</th>
-                                <th>Delete</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -101,8 +100,7 @@
                                     <td> <img src="{{ asset('storage/' . $product['image']) }}" alt="Image" width="50" height="50"></td>
                                     <td>
                                         <a href="{{ url('edit-product/'.$product->id) }}" class="btn btn-sm btn-warning">Edit</a>
-                                    </td>
-                                    <td>
+                                   
                                         <form action="{{ url('delete-product/'.$product->id) }}" method="POST" class="delete-form">
                                             @csrf
                                             @method('DELETE')
